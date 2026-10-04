@@ -1,0 +1,19 @@
+{
+  "name": "limpiador-3d",
+  "version": "1.0.0",
+  "description": "Juego 3D de escritorio: limpiá el piso del habitáculo y sumá puntos.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "web": "npx --yes http-server -c-1 -p 8080 ."
+  },
+  "keywords": ["game", "threejs", "electron", "3d"],
+  "author": "Lucas Himelfarb",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1"
+  }
+}

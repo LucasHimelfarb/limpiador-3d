@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Limpiador 3D</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "./node_modules/three/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div id="hud" class="hidden">
+    <div class="panel">
+      <div class="stat"><span>Nivel</span><b id="level">1</b></div>
+      <div class="stat"><span>Puntos</span><b id="score">0</b></div>
+      <div class="stat"><span>Tiempo</span><b id="time">0</b></div>
+    </div>
+    <div class="panel wide">
+      <div class="bar-label"><span>Piso limpio</span><b id="cleanPct">0%</b></div>
+      <div class="bar"><div id="cleanBar"></div><div class="goal" id="goalMark"></div></div>
+      <div class="bar-label"><span>Agua del trapeador</span><b id="waterPct">100%</b></div>
+      <div class="bar water"><div id="waterBar"></div></div>
+    </div>
+  </div>
+  <div id="hint" class="hidden"></div>
+  <div id="popups"></div>
+
+  <div id="overlay">
+    <div class="card">
+      <h1 id="title">Limpiador 3D</h1>
+      <p id="message">Dejá el piso del habitáculo impecable antes de que se acabe el tiempo.</p>
+      <ul id="controls">
+        <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / flechas: moverse</li>
+        <li><kbd>Espacio</kbd> mantener: fregar más fuerte</li>
+        <li><kbd>E</kbd> junto al balde: mojar el trapeador</li>
+        <li><kbd>P</kbd> pausa</li>
+      </ul>
+      <button id="startBtn">Jugar</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
