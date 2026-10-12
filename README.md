@@ -13,8 +13,8 @@ Juego 3D de escritorio (Electron + Three.js): manejás a un personaje con un tra
 | `Enter` | Empezar / siguiente nivel |
 
 - El trapeador gasta agua a medida que limpia; cuando se seca no limpia más, así que hay que volver al balde.
-- Cada nivel tiene una meta de piso limpio (80% en el nivel 1, sube con cada nivel) y un tiempo límite.
-- Si llegás al 99% el nivel termina en el acto y te llevás el bonus por piso impecable más el bonus por el tiempo que sobró.
+- Cada nivel tiene una meta de piso limpio (75% en el nivel 1, sube con cada nivel) y un tiempo límite.
+- Si llegás al 98% el nivel termina en el acto y te llevás el bonus por piso impecable más el bonus por el tiempo que sobró.
 - Si se acaba el tiempo sin llegar a la meta, perdés.
 
 ### Puntaje

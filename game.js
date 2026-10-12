@@ -9,6 +9,8 @@ const SPEED = 4.8;
 const MOP_REACH = 0.95;
 const MOP_RADIUS = 0.75;
 const BUCKET_RANGE = 1.6;
+const PERFECT = 0.98;
+const POPUP_INTERVAL = 0.4;
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -225,6 +227,51 @@ for (let j = 0; j < GRID; j++) {
   }
 }
 
+function playerFits(x, z) {
+  const limit = HALF - PLAYER_RADIUS;
+  if (Math.abs(x) > limit || Math.abs(z) > limit) return false;
+  for (const o of obstacles) {
+    const dx = x - THREE.MathUtils.clamp(x, o.minX, o.maxX);
+    const dz = z - THREE.MathUtils.clamp(z, o.minZ, o.maxZ);
+    if (dx * dx + dz * dz < PLAYER_RADIUS * PLAYER_RADIUS) return false;
+  }
+  return true;
+}
+
+function markUnreachableCells() {
+  const STEP = 0.2;
+  const N = Math.round(ROOM / STEP) + 1;
+  const toWorld = (n) => -HALF + n * STEP;
+  const seen = new Uint8Array(N * N);
+  const reachable = new Uint8Array(GRID * GRID);
+  const start = [Math.round((0 + HALF) / STEP), Math.round((4 + HALF) / STEP)];
+  const queue = [start];
+  seen[start[1] * N + start[0]] = 1;
+  const reach = MOP_RADIUS * 0.85 / CELL;
+  while (queue.length) {
+    const [a, b] = queue.pop();
+    const px = toWorld(a), pz = toWorld(b);
+    for (let h = 0; h < 24; h++) {
+      const ang = (h / 24) * Math.PI * 2;
+      const ci = (px + Math.sin(ang) * MOP_REACH + HALF) / CELL - 0.5;
+      const cj = (HALF - (pz + Math.cos(ang) * MOP_REACH)) / CELL - 0.5;
+      for (let j = Math.max(0, Math.floor(cj - reach)); j <= Math.min(GRID - 1, Math.ceil(cj + reach)); j++) {
+        for (let i = Math.max(0, Math.floor(ci - reach)); i <= Math.min(GRID - 1, Math.ceil(ci + reach)); i++) {
+          if ((i - ci) ** 2 + (j - cj) ** 2 < reach * reach) reachable[j * GRID + i] = 1;
+        }
+      }
+    }
+    for (const [da, db] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const na = a + da, nb = b + db;
+      if (na < 0 || nb < 0 || na >= N || nb >= N || seen[nb * N + na]) continue;
+      seen[nb * N + na] = 1;
+      if (playerFits(toWorld(na), toWorld(nb))) queue.push([na, nb]);
+    }
+  }
+  for (let k = 0; k < blocked.length; k++) if (!reachable[k]) blocked[k] = 1;
+}
+markUnreachableCells();
+
 let initialDirt = 1;
 let currentDirt = 0;
 
@@ -288,9 +335,9 @@ function cleanAt(x, z, radius, power) {
       if (d >= 1) continue;
       const k = j * GRID + i;
       if (dirt[k] <= 0) continue;
-      const amount = Math.min(dirt[k], power * (1 - d * d * 0.7));
+      const amount = Math.min(dirt[k], power * (1 - d * d * 0.5));
       dirt[k] -= amount;
-      if (dirt[k] < 0.02) {
+      if (dirt[k] < 0.05) {
         removed += dirt[k];
         dirt[k] = 0;
       }
@@ -426,11 +473,13 @@ const state = {
   heading: 0,
   walkPhase: 0,
   goalNotified: false,
-  hintTimer: 0
+  hintTimer: 0,
+  popupPending: 0,
+  popupCooldown: 0
 };
 
-const goalFor = (level) => Math.min(0.95, 0.8 + (level - 1) * 0.03);
-const timeFor = (level) => 75 + level * 10;
+const goalFor = (level) => Math.min(0.92, 0.75 + (level - 1) * 0.03);
+const timeFor = (level) => 85 + level * 10;
 const cleanRatio = () => 1 - currentDirt / initialDirt;
 
 function startLevel() {
@@ -439,6 +488,8 @@ function startLevel() {
   state.water = 1;
   state.levelPoints = 0;
   state.pointBuffer = 0;
+  state.popupPending = 0;
+  state.popupCooldown = 0;
   state.goalNotified = false;
   player.root.position.set(0, 0, 4);
   state.heading = Math.PI;
@@ -490,7 +541,7 @@ function popup(text, worldPos) {
   const el = document.createElement('div');
   el.className = 'popup';
   el.textContent = text;
-  el.style.left = `${(v.x * 0.5 + 0.5) * window.innerWidth}px`;
+  el.style.left = `${(v.x * 0.5 + 0.5) * window.innerWidth + (Math.random() - 0.5) * 30}px`;
   el.style.top = `${(-v.y * 0.5 + 0.5) * window.innerHeight}px`;
   ui.popups.appendChild(el);
   setTimeout(() => el.remove(), 900);
@@ -631,10 +682,18 @@ function update(dt) {
       if (state.pointBuffer >= 10) {
         const pts = Math.floor(state.pointBuffer / 10) * 10;
         state.pointBuffer -= pts;
-        addPoints(pts, mopWorld.clone().setY(0.4));
+        addPoints(pts);
+        state.popupPending += pts;
       }
       if (Math.random() < dt * 14) spawnBubble(mopWorld.x, mopWorld.z);
     }
+  }
+
+  state.popupCooldown -= dt;
+  if (state.popupPending > 0 && state.popupCooldown <= 0) {
+    popup(`+${state.popupPending}`, mopWorld.clone().setY(0.4));
+    state.popupPending = 0;
+    state.popupCooldown = POPUP_INTERVAL;
   }
 
   if (state.water <= 0 && state.hintTimer <= 0) showHint('¡El trapeador está seco! Mojalo en el balde (E)', 2);
@@ -646,11 +705,11 @@ function update(dt) {
   if (!state.goalNotified && ratio >= goalFor(state.level)) {
     state.goalNotified = true;
     addPoints(100, pos.clone().setY(2.4));
-    showHint('¡Meta alcanzada! Llegá al 99% para terminar con bonus de tiempo', 3);
+    showHint(`¡Meta alcanzada! Llegá al ${Math.round(PERFECT * 100)}% para terminar con bonus de tiempo`, 3);
   }
 
   state.time -= dt;
-  if (ratio >= 0.99) return finishLevel(true);
+  if (ratio >= PERFECT) return finishLevel(true);
   if (state.time <= 0) {
     state.time = 0;
     return ratio >= goalFor(state.level) ? finishLevel(false) : gameOver();
